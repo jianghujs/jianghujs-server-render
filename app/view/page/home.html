@@ -1,0 +1,50 @@
+{% extends 'template/articleTemplate.html' %}
+
+{% block title %}<$ ctx.seo.constantUiMap.header.title $>{% endblock %}
+
+{% block content %}
+<!-- 加载页面样式 >>>>>>>>>>>>> -->
+{% include 'component/home/jianghuHomeCss.html' %}
+<!-- <<<<<<<<<<<<< 加载页面样式 -->
+
+<!-- 页面主要内容 >>>>>>>>>>>>> -->
+<main class="jianghu-home">
+
+  <!-- menu -->
+  <div style="position: absolute; top: 20px; right: 40px; padding: 4px 10px; border-radius: 4px;">
+    <a href="/jianghujs_server_render/page/articleList" style="color: #213547; font-size: 14px; font-weight: bold; text-decoration: underline;">文章管理</a>
+  </div>
+
+  <!-- 文字 -->
+  <section class="jianghu-home-hero">
+    <div>
+      <p class="jianghu-home-hero-tagline"><$ ctx.seo.constantUiMap.body.title | safe $></p>
+      <p class="jianghu-home-hero-description"><$ ctx.seo.article.string $></p>
+    </div>
+  </section>
+
+  <!-- 分隔线 -->
+  <hr class="divider-horizontal jianghu-home-divider" />
+
+  <!-- 文章列表 -->
+  <section class="jianghu-home-highlights">
+    {% for item in categoryList %}
+    <div class="jianghu-home-highlights-box">
+      <h2 class="jianghu-home-highlights-title"><$ item.categoryName $></h2>
+      <section class="jianghu-home-highlights-p-list">
+        {% for article in item.articleList %}
+        <p class="jianghu-home-highlights-description">
+          <a href="/<$ ctx.app.config.appId $>/page/article/<$ article.articleId $>" class="text-reset"><$ article.articleTitle $></a>
+        </p>
+        {% endfor %}
+      </section>
+    </div>
+    {% endfor %}
+  </section>
+  
+</main>
+<!-- <<<<<<<<<<<<< 页面主要内容 -->
+{% endblock %}
+
+{% block javascript %}
+{% endblock %}

@@ -1,0 +1,120 @@
+{% set appId = ctx.app.config.appId %}
+{% set userId = userInfo.userId %}
+{% set username = userInfo.username %}
+{% set adminUrl = ctx.app.config.adminUrl %}
+{% set static = "/" + appId + "/public" %}
+{% set pageUrl = "/" + appId + "/page" %}
+{% set url = "/" +ctx.app.config.appId + "/page/" %}
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+  <!-- 设置页面默认参数 >>>>>>>>>>>>> -->
+  <meta charset="UTF-8">
+  <meta name=renderer content=webkit>
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge，chrome=1">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta http-equiv="Cache-Control" content="max-age=7200" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="{% block keyword %}{% endblock %}<$ site_keywords $>" />
+  <meta name="description" content="{% block description %}{% endblock %}" />
+  <title>{% block title %}{% endblock %} - <$ ctx.app.config.appTitle $></title>
+  <!-- <<<<<<<<<<<<< 设置页面默认参数 -->
+
+  <!-- OGP分享协议开始 >>>>>>>>>>>>> -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block ogp_title %}{% endblock %}">
+  <meta property="og:description" content="{% block ogp_desc %}{% endblock %}">
+  <meta property="og:pageUrl" content="<$ request.scheme $>://<$ request.META.HTTP_HOST $><$ request.path_info $>">
+  <!-- <<<<<<<<<<<<< OGP分享协议开始 -->
+
+  <!-- 加载第三方库CSS >>>>>>>>>>>>> -->
+  <link href="<$ static $>/articleViewer/font-awesome.min.css?v=6.0.0" rel="stylesheet"/>
+  <link href="<$ static $>/articleViewer/roboto-font.css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
+  <link href="<$ static $>/articleViewer/mdb.min.css" rel="stylesheet"/>
+  <!-- <<<<<<<<<<<<< 加载第三方库CSS -->
+
+  <!-- 加载第三方库JS >>>>>>>>>>>>> -->
+  <script src="<$ static $>/lib/jquery/jquery.min.js?v=1.0.5"></script>
+  <script src="<$ static $>/lib/lodash/lodash.min.js?v=1.0.5"></script>
+  <script src='<$ static $>/lib/axios/axios.min.js'></script>
+  <!-- <<<<<<<<<<<<< 加载第三方库JS -->
+
+  <!-- 加载定制样式 >>>>>>>>>>>>> -->
+  {% include 'component/articleViewer/jianghuUiCss.html' %}
+  {% include 'component/articleViewer/jianghuCommonCss.html' %}
+  {% include 'component/articleViewer/jianghuDocCss.html' %}
+  {% include 'component/articleViewer/jianghuDocDocsCss.html' %}
+  <!-- <<<<<<<<<<<<< 加载定制样式 -->
+
+  <!-- appInfo >>>>>>>>>>>>> -->
+  <script type="text/javascript">
+    window.appInfo = {
+      appId: '<$ ctx.app.config.appId $>',
+      upload: '/<$ ctx.app.config.appId $>/upload',
+      public: '/<$ ctx.app.config.appId $>/public',
+      userAgent: navigator.userAgent || '',
+    }
+    if (window.appInfo.userAgent.length > 127) {
+      window.appInfo.userAgent = window.appInfo.userAgent.substring(0, 126);
+    }
+  </script>
+  <!-- <<<<<<<<<<<<< appInfo -->
+</head>
+
+<body data-mdb-target="#scrollspy" data-mdb-offset="0" class="white-bg">
+  <!-- 遮罩层 >>>>>>>>>>>>> -->
+  <div class="vt-backdrop backdrop"></div>
+  <!-- <<<<<<<<<<<<< 遮罩层 -->
+
+  {% block content %}{% endblock %}
+
+  <!-- 加载工具脚本 >>>>>>>>>>>>> -->
+  {% include 'utility/jianghuJs/jianghuAxiosV4.html' %}
+  <!-- <<<<<<<<<<<<< 加载工具脚本 -->
+
+  <!-- 加载第三方库JS >>>>>>>>>>>>> -->
+  <script src="<$ static $>/articleViewer/mdb.min.js"></script>
+  <!-- <<<<<<<<<<<<< 加载第三方库JS -->
+ 
+  <!-- 加载定制JS >>>>>>>>>>>>> -->
+  {% include 'component/articleViewer/jianghuJs.html' %}
+  <!-- <<<<<<<<<<<<< 加载定制JS -->
+  
+  <!-- 公共方法 >>>>>>>>>>>>> -->
+  <script type="text/javascript">
+    window.vtoast = {
+      success: ({message}) => {
+        showSuccessAlert(message)
+      },
+      fail: ({message}) => {
+        showFailAlert(message)
+      },
+      loading: () => {
+        showLoading()
+      },
+      hideLoading: () => {
+        showLoading()
+      }
+    };
+
+    function catchError() {
+      const urlObj = new URLSearchParams(location.search.substring(1));
+      const errorInfo = <$ ctx.seo.constantUiMap.errorInfo | dump | safe $>;
+      const errorCode = urlObj.get('errorCode');
+      const errorReason = urlObj.get('errorReason');
+      if (errorCode) {
+        showFailAlert(errorInfo.contentEnum[errorCode] || errorReason)
+      }
+    }
+
+    $(function () {
+      catchError();
+    })
+  </script>
+  <!-- <<<<<<<<<<<<< 公共方法 -->
+
+  {% block javascript %}{% endblock %}
+</body>

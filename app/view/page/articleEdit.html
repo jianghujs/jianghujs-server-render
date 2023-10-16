@@ -1,0 +1,956 @@
+{% extends 'template/jhTemplateV4.html'%}
+
+{% block vueTemplate %}
+
+<script type="text/html" id="app-template">
+  <div>
+    <v-app mobile-breakpoint="sm">
+      <jh-menu />
+      <v-main class="mt-15">
+        <div class="jh-page-second-bar px-8">
+          <v-row class="align-center">
+            <v-col cols="12" xs="12" sm="12" md="4" xl="3">
+              <div class="py-4 text-body-1 font-weight-bold">文章编辑
+                <!-- 帮助页按钮 -->
+                <span role="button" class="success--text font-weight-regular jh-font-size-13 ml-2" @click="isHelpPageDrawerShown = true">
+                  <v-icon size="13" class="success--text">mdi-help-circle-outline</v-icon>帮助
+                </span>
+              </div>
+            </v-col>
+            <!-- pc端的搜索条件表单 >>>>>>>> -->
+            <v-col cols="12" xs="12" sm="12" md="8" xl="9">
+              <v-row class="jh-backend-form-container justify-end ma-0 py-3">
+                <v-btn v-if="editItem.articleId && editItem.articlePublishStatus !== 'deleted'"
+                  @click="doUiAction('deleteArticle') " color="error" class="mr-2" depressed small>
+                  <v-icon class="mr-1" small>mdi-trash-can</v-icon>
+                  <$ constantUiMap.common.moveToRecycleBin $>
+                </v-btn>
+                <v-btn v-if="editItem.articlePublishStatus === 'deleted'" @click="doUiAction('restoreArticle') "
+                  color="error" class="mr-2"
+                  depressed small>
+                  <v-icon class="mr-1" small>mdi-backburger</v-icon>
+                  <$ constantUiMap.article.recoverArticle $>
+                </v-btn>
+                <v-btn @click="doUiAction('save')" color="success" class="mr-2" depressed small>
+                  <v-icon class="mr-1" small>mdi-content-save-all</v-icon>
+                  <$ constantUiMap.common.save $>
+                </v-btn>
+                <v-btn @click="doUiAction('saveAndPreview') " color="success" depressed small>
+                  <v-icon class="mr-1" small>mdi-eye-refresh</v-icon>
+                  <$ constantUiMap.common.saveAndPreview $>
+                </v-btn>
+              </v-row>
+            </v-col>
+            <!-- <<<<<<<< pc端的搜索条件表单 -->
+          </v-row>
+        </div>
+        <!-- <<<<<<<<<<<<< 头部内容 -->
+
+        <!-- 页面内容 >>>>>>>>>>>>> -->
+        <div class="jh-page-body-container px-8">
+          <!-- 页面主要内容 -->
+          <v-container class="pa-0">
+            <v-card class="jh-fixed-table-height">
+              <v-form ref="articleForm">
+                <v-row dense no-gutters>
+                  <!-- 左边栏 -->
+                  <v-col cols="12" xs="12" sm="4" md="3" xl="2" class="pr-sm-2">
+                    <v-card flat style="padding: 16px !important;">
+                      <v-row class="mb-2" no-gutters>
+                        <p class="font-weight-medium mb-0 text-subtitle-2 text-subtitle-2">
+                          基本信息
+                        </p>
+                      </v-row>
+                      <v-row no-gutters>
+                        <v-col cols="12">
+                          <span class="jh-input-label"><$ constantUiMap.article.articleTitle $></span>
+                          <v-text-field class="jh-v-input" dense single-line filled hide-details label="<$ constantUiMap.article.articleTitle $>"
+                            v-model="editItem.articleTitle" :rules="validationRules.requireRules"></v-text-field>
+                        </v-col>
+                        <v-col cols="12">
+                          <span class="jh-input-label">分类</span>
+                          <v-select class="jh-v-input" v-model="editItem.categoryId" color="success" prefix="分类："
+                            :items="categorySearchInput ? constantObj.categorySearch : constantObj.category"
+                            dense filled single-line>
+                            <template v-slot:prepend-item>
+                              <v-text-field prefix="搜索：" clearable v-model="categorySearchInput" class="mb-2" dense
+                                filled single-line hide-details>
+                              </v-text-field>
+                            </template>
+                          </v-select>
+                        </v-col>
+                        <v-col cols="12">
+                          <span class="jh-input-label">标签</span>
+                          <v-text-field class="jh-v-input" dense filled single-line hide-details label="标签"
+                            v-model="editItem.articleTagList"></v-text-field>
+                        </v-col>
+                        <v-col cols="12">
+                          <span class="jh-input-label">文章分组</span>
+                          <v-text-field class="jh-v-input" dense filled single-line hide-details label="文章分组"
+                            v-model="editItem.articleGroupName"></v-text-field>
+                        </v-col>
+                        <v-col cols="12">
+                          <span class="jh-input-label">发布状态</span>
+                          <v-select v-model="editItem.articlePublishStatus" color="success" prefix="发布状态：" class="jh-v-input" :items="constantObj.articlePublishStatus" dense filled single-line></v-select>
+                        </v-col>
+                        <v-col cols="12">
+                          <span class="jh-input-label">发布时间</span>
+                          <v-menu offset-y max-width="290">
+                            <template v-slot:activator="{ on, attrs }">
+                              <datetime-picker okText="确定" clearText="清除" v-model="editItem.articlePublishTime" :disabled="false"></datetime-picker>
+                            </template>
+                            <div>
+                            </div>
+                          </v-menu>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+
+                    <v-card class="mt-2" flat style="padding: 16px !important;">
+                      <v-row class="mb-2" no-gutters>
+                        <p class="font-weight-medium mb-0 text-subtitle-2">
+                          封面
+                        </p>
+                        <v-spacer></v-spacer>
+                        <v-btn outlined small fab
+                          @click="doUiAction('selectImage')" class="mdi-upload-outline">
+                          <v-icon small>mdi-upload-outline</v-icon>
+                        </v-btn>
+                        <v-btn outlined small fab class="ml-2 mdi-trash-can-outline" color="error"
+                          @click.stop="doUiAction('deleteImage')" v-if="editItem.articleCoverImage">
+                          <v-icon small>mdi-trash-can-outline</v-icon>
+                        </v-btn>
+                      </v-row>
+                      <v-card-text class="px-0 text-center">
+                        <img v-if="editItem.articleCoverImage" :src="`${appInfo.upload}${editItem.articleCoverImage}`"
+                          alt=""
+                          style="width: 100%; height: 100%; object-fit: cover;">
+                        <p v-else class="text-center">暂无封面~</p>
+                      </v-card-text>
+                    </v-card>
+
+                    <v-card class="mt-2" flat style="padding: 16px !important;">
+                      <v-row class="mb-2" no-gutters>
+                        <p class="font-weight-medium mb-0 text-subtitle-2">
+                          音频
+                        </p>
+                        <v-spacer></v-spacer>
+                        <v-btn outlined small fab class="mdi-upload-outline"
+                          @click="doUiAction('selectAudio')">
+                          <v-icon small>mdi-upload-outline</v-icon>
+                        </v-btn>
+                        <v-btn outlined small fab class="ml-2 mdi-trash-can-outline" color="error"
+                          @click.stop="doUiAction('deleteAudio')" v-if="editItem.articleAudioUrl">
+                          <v-icon small>mdi-trash-can-outline</v-icon>
+                        </v-btn>
+                      </v-row>
+                      <v-card-text class="px-0 text-center">
+                        <audio style="max-width: 100%;" v-if="editItem.articleAudioUrl"
+                          :src="`/<$ ctx.app.config.appId $>/upload${editItem.articleAudioUrl}?v=${new Date().getTime()}`"
+                          controls>
+                          <source
+                            :src="`/<$ ctx.app.config.appId $>/upload${editItem.articleAudioUrl}?v=${new Date().getTime()}`"
+                            type="audio/mpeg">
+                        </audio>
+                        <p v-else class="text-center">暂无音频~</p>
+                      </v-card-text>
+                    </v-card>
+
+                    <v-card class="mt-2" flat style="padding: 16px !important;">
+                      <v-row class="mb-2" no-gutters>
+                        <p class="font-weight-medium mb-0 text-subtitle-2">
+                          视频
+                        </p>
+                        <v-spacer></v-spacer>
+                        <v-btn outlined small fab class="mdi-upload-outline"
+                          @click="doUiAction('selectVideo')">
+                          <v-icon small>mdi-upload-outline</v-icon>
+                        </v-btn>
+                        <v-btn outlined small fab class="ml-2 mdi-trash-can-outline" color="error"
+                          @click.stop="doUiAction('deleteVideo')" v-if="editItem.articleVideoUrl">
+                          <v-icon small>mdi-trash-can-outline</v-icon>
+                        </v-btn>
+                      </v-row>
+                      <v-card-text class="px-0">
+                        <video style="max-width: 100%;" v-if="editItem.articleVideoUrl"
+                          :src="`/<$ ctx.app.config.appId $>/upload${editItem.articleVideoUrl}?v=${new Date().getTime()}`"
+                          controls>
+                          <source
+                            :src="`/<$ ctx.app.config.appId $>/upload${editItem.articleVideoUrl}?v=${new Date().getTime()}`"
+                            type="video/mp4">
+                        </video>
+                        <p v-else class="text-center">暂无视频~</p>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                  <!-- markdown编辑 -->
+                  <v-col cols="12" xs="12" sm="8" md="9" xl="10" class="mt-2 mt-sm-0">
+                    <v-card flat class="jh-fixed-table-height">
+                      <div id="editorMdContainer" class="mb-0">
+                        <textarea style="display:none;">{{ editItem.articleContent }}</textarea>
+                      </div>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </v-form>
+            </v-card>
+          </v-container>
+
+          <!-- 选择素材弹窗 -->
+          <v-dialog v-model="isMaterialDialogShown" hide-overlay fullscreen transition="dialog-bottom-transition">
+            <v-card flat class="rounded-0">
+              <v-toolbar width="100%">
+                <div class="black--text ml-2 font-weight-medium text-subtitle-2">选择素材</div>
+                <v-spacer></v-spacer>
+                <v-btn fab text small class="mr-2" @click="isMaterialDialogShown = false">
+                  <v-icon class="black--text">mdi-close</v-icon>
+                </v-btn>
+              </v-toolbar>
+              <v-divider style="border-color: #eff2f5;opacity:0.8;"></v-divider>
+              <file-browser
+                v-if="isMaterialDialogShown"
+                :operation-config="operationConfig"
+                :accessible-folder="accessibleFolder"
+                :access-path="accessPath"
+                :root-directory="rootDirectory"
+                :root-directory-name="rootDirectoryName"
+                @use-file="doUiAction('useMaterial', $event)"></file-browser>
+            </v-card>
+          </v-dialog>
+        </div>
+        <!-- <<<<<<<<<<<<< 页面内容 -->
+
+        <!-- 帮助页抽屉 >>>>>>>>>>>>> -->
+        <v-navigation-drawer v-model="isHelpPageDrawerShown" v-click-outside="drawerClickOutside" fixed temporary right
+          width="80%" class="elevation-24">
+          <iframe
+            style="border: 0" :src="`/${appInfo.appId}/pageDoc#2.articleEdit.md`" width="100%"
+            height="100%"></iframe>
+
+          <v-btn
+            elevation="0" color="success" fab absolute top left small tile class="drawer-close-float-btn"
+            @click="isHelpPageDrawerShown = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-navigation-drawer>
+        <!-- <<<<<<<<<<<<< 帮助页抽屉 -->
+
+      </v-main>
+    </v-app>
+
+    <jh-toast />
+    <jh-mask />
+    <jh-confirm-dialog />
+
+  </div>
+</script>
+
+<div id="app">
+</div>
+
+{% endblock %}
+
+{% block vueScript %}
+
+<!-- 加载页面组件 >>>>>>>>>>>>> -->
+{% include 'common/jianghuJs/fixedTableHeightV4.html' %}
+{% include 'component/fileBrowser/fileBrowser.html' %}
+{% include 'component/datetimePicker.html' %}
+{% include 'component/articleEditor/articleEditorCss.html' %}
+<!-- <<<<<<<<<<<<< 加载页面组件 -->
+
+<!-- 加载页面静态资源 >>>>>>>>>>>>> -->
+<link rel="stylesheet" href="/<$ ctx.app.config.appId $>/public/plugins/editor.md/css/editormd.min.css" />
+<link href="/<$ ctx.app.config.appId $>/public/articleViewer/font-awesome.min.css?v=6.0.0" />
+<script src="/<$ ctx.app.config.appId $>/public/js/lib/jquery.min.js"></script>
+<script src="/<$ ctx.app.config.appId $>/public/plugins/editor.md/editormd.js"></script>
+<!-- <<<<<<<<<<<<< 加载页面静态资源 -->
+
+<script type="module">
+  new Vue({
+    el: '#app',
+    template: '#app-template',
+    vueComponent: 'page',
+    vuetify: new Vuetify(),
+    data: {
+      // 面包屑
+      isHelpPageDrawerShown: false,
+
+      // file-browser 配置
+      operationConfig: {
+        'markdown': false,
+        'copy': false,
+        'cut': false,
+        'clearRecycle': false,
+        'delete': false,
+        'edit': false,
+        'rename': false,
+      },
+      accessibleFolder: [{ groupId: "materialRepo" }],
+      accessPath: "/materialRepo/",
+      rootDirectory: "",
+      rootDirectoryName: "<$ constantUiMap.fileExplorer.material $>",
+
+      // 下拉选项
+      constantObj: {
+        articlePublishStatus: [
+          { text: "公开", value: "public" },
+          { text: "登录可见", value: "login" },
+          { text: "草稿", value: "draft" },
+          { text: "回收站", value: "deleted" },
+        ],
+        category: [],
+        categorySearch: []
+      },
+
+      // 表单相关
+      validationRules: {
+        requireRules: [
+          v => !!v || 'This is required',
+        ],
+      },
+
+      //文章相关
+      articleRowId: null,
+      articleId: null,
+      editItem: {
+        articlePublishStatus: 'public'
+      },
+      saveActionData: {},
+
+      // 分类相关
+      categoryData: [],
+      categorySearchInput: null,
+
+      //素材相关
+      isMaterialDialogShown: false,
+      materialType: '',
+      writeBackType: '',
+      materialFilename: '',
+      materialDownloadPath: '',
+
+      //编辑器相关
+      editor: null,
+      isMDChange: false,
+      toolbarIcons: [
+        "undo", "redo", "|",
+        "watch",
+        "preview", "|",
+        "h1", "h2", "h3", "h4", "h5", "bold", "del", "italic", "quote", "mark",
+        "imageUpload", "audioUpload", "videoUpload", "attachmentUpload",
+        "list-ul", "list-ol", "hr", "link", "|",
+        "toggle", "articleQuery"
+      ],
+    },
+    watch: {
+      categorySearchInput() {
+        this.doUiAction('categorySearch')
+      },
+    },
+    async created() {
+      await this.doUiAction('prepareData');
+    },
+    async mounted() {
+      await this.doUiAction('getArticleData');
+      await this.doUiAction('initEditorMd');
+      await this.doUiAction('beforeUnloadCheckMDChange');
+    },
+    methods: {
+      async doUiAction(uiActionId, uiActionData) {
+        switch (uiActionId) {
+          case 'categorySearch':
+            await this.categorySearch();
+            break;
+          case 'prepareData':
+            await this.getUrlObj();
+            await this.getCategoryData();
+            await this.setCategoryConstant();
+            break;
+          case 'getArticleData':
+            await this.getArticleData();
+            break;
+          case 'initEditorMd':
+            await this.initEditorMd();
+            break;
+          case 'beforeUnloadCheckMDChange':
+            await this.beforeUnloadCheckMDChange();
+            break;
+          case 'deleteArticle':
+            await this.confirmDeleteItemDialog();
+            await this.doDeleteItem();
+            await this.getArticleData();
+            break;
+          case 'restoreArticle':
+            await this.confirmRestoreItemDialog();
+            await this.doRestoreItem();
+            await this.getArticleData();
+            break;
+          case 'save':
+            await this.prepareArticleFormValidate();
+            await this.prepareDoSave();
+            await this.doSave();
+            await this.clearSave();
+            await this.refreshPage();
+            break;
+          case 'saveAndPreview':
+            await this.doUiAction('save');
+            await this.previewArticle();
+            break;
+          case 'selectImage':
+            await this.checkIsArticleExists();
+            await this.prepareSelectImageData();
+            await this.openMaterialDialog();
+            break;
+          case 'selectAudio':
+            await this.checkIsArticleExists();
+            await this.prepareSelectAudioData();
+            await this.openMaterialDialog();
+            break;
+          case 'selectVideo':
+            await this.checkIsArticleExists();
+            await this.prepareSelectVideoData();
+            await this.openMaterialDialog();
+            break;
+          case 'deleteImage':
+            await this.deleteImage();
+            break;
+          case 'deleteAudio':
+            await this.deleteAudio();
+            break;
+          case 'deleteVideo':
+            await this.deleteVideo();
+            break;
+          case 'MDSelectImage':
+            await this.checkIsArticleExists();
+            await this.prepareMDSelectImageData();
+            await this.openMaterialDialog();
+            break;
+          case 'MDSelectAudio':
+            await this.checkIsArticleExists();
+            await this.prepareMDSelectAudioData();
+            await this.openMaterialDialog();
+            break;
+          case 'MDSelectVideo':
+            await this.checkIsArticleExists();
+            await this.prepareMDSelectVideoData();
+            await this.openMaterialDialog();
+            break;
+          case 'MDSelectAttachment':
+            await this.checkIsArticleExists();
+            await this.prepareMDSelectAttachmentData();
+            await this.openMaterialDialog();
+            break;
+          case 'MDChange':
+            await this.setMDChanged();
+            await this.setArticleContent();
+            break;
+          case 'useMaterial':
+            await this.doUseMaterial(uiActionData);
+            await this.renderMaterial();
+            await this.clearUseMaterial();
+            break;
+          default:
+            console.error("[doUiAction] uiActionId not find", { uiActionId });
+            break;
+        }
+      },
+
+      // ---------- 分类搜索 uiAction >>>>>>>>>>>> --------
+      async categorySearch() {
+        const searchVal = this.categorySearchInput ? this.categorySearchInput.toLowerCase() : null;
+        const categoryList = _.cloneDeep(this.constantObj.category);
+        if (searchVal) {
+          this.constantObj.categorySearch = categoryList.filter(category => category.text.toLowerCase().includes(searchVal) || category.text.includes(searchVal))
+        } else {
+          this.constantObj.categorySearch = categoryList;
+        }
+      },
+      // ---------- <<<<<<<<<<< 分类搜索 uiAction  --------
+
+      // ---------- 文章未保存离开时提示 uiAction >>>>>>>>>> --------
+      async beforeUnloadCheckMDChange() {
+        const that = this;
+        window.onbeforeunload = function () {
+          if (that.isMDChange) {
+            return 1;
+          } else {
+            return null;
+          }
+        }
+      },
+      // ---------- <<<<<<<<<<< 文章未保存离开时提示 uiAction  --------
+
+      // ---------- prepareData uiAction >>>>>>>>>> --------
+      async getUrlObj() {
+        const urlObj = new URLSearchParams(location.search.substring(1));
+        this.articleId = urlObj.get('articleId');
+      },
+      async getCategoryData() {
+        const result = await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'selectCategoryList',
+              actionData: {},
+              whereIn: { categoryPublishStatus: ['public', 'login'] },
+              orderBy: [{ column: 'categoryGroup', order: 'asc' }, { column: 'categoryGroupSort', order: 'asc' }]
+            }
+          }
+        });
+        this.categoryData = result.data.appData.resultData.rows;
+      },
+      setCategoryConstant() {
+        this.categoryData.forEach(item => {
+          this.constantObj.category.push({
+            text: `${item.categoryGroupConcat || ''}${item.categoryName}`,
+            value: item.categoryId + ""
+          });
+        })
+      },
+      // ---------- <<<<<<<<<<< prepareData uiAction  --------
+
+      // ---------- 获取数据 uiAction >>>>>>>>>> --------
+      async getArticleData() {
+        if (this.articleId) {
+          const result = await window.jianghuAxios({
+            data: {
+              appData: {
+                pageId: 'articleEdit',
+                actionId: 'selectArticleInfo',
+                actionData: {
+                  articleId: this.articleId
+                },
+              }
+            }
+          });
+          this.editItem = result.data.appData.resultData;
+        }
+      },
+      // ---------- <<<<<<<<<<< 获取数据 uiAction  --------
+
+      // ---------- 删除数据 uiAction >>>>>>>>>>>> --------
+      async confirmDeleteItemDialog() {
+        if (await window.confirmDialog({ title: "<$ constantUiMap.common.recycle $>", content: "<$ constantUiMap.article.recycleArticleConfirm $>？" }) === false) {
+          throw new Error("[confirmDeleteItemDialog] 否");
+        }
+      },
+      async doDeleteItem() {
+        await window.vtoast.loading("<$ constantUiMap.article.recycleArticle $>");
+        await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'deletedArticle',
+              actionData: { articleId: this.articleId }
+            }
+          }
+        });
+        await window.vtoast.success("<$ constantUiMap.article.recycleArticleSuccess $>");
+      },
+      // ---------- <<<<<<<<<<< 删除数据 uiAction  --------
+
+      // ---------- 恢复数据 uiAction >>>>>>>>>>>> --------
+      async confirmRestoreItemDialog() {
+        if (await window.confirmDialog({ title: "<$ constantUiMap.common.recover $>", content: "<$ constantUiMap.article.recoverArticleConfirm $>？" }) === false) {
+          throw new Error("[confirmRestoreItemDialog] 否");
+        }
+      },
+      async doRestoreItem() {
+        await window.vtoast.loading("<$ constantUiMap.article.recoverArticle $>");
+        await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'restoreArticle',
+              actionData: { articleId: this.articleId }
+            }
+          }
+        });
+        await window.vtoast.success("<$ constantUiMap.article.recoverArticleSuccess $>");
+      },
+      // ---------- <<<<<<<<<<< 恢复数据 uiAction  --------
+
+      // ---------- 保存数据 uiAction >>>>>>>>>>>> --------
+      async prepareArticleFormValidate() {
+        if (await this.$refs.articleForm.validate()) {
+          return true;
+        }
+        throw new Error("请完善表单信息")
+      },
+      async prepareDoSave() {
+        const { id, articleList, categoryName, ...data } = this.editItem;
+        this.saveActionData = data;
+      },
+      async doSave() {
+        if (this.articleId) {
+          await this.doUpdateItem();
+        } else {
+          await this.doCreateItem();
+          await this.getArticleByRowId();
+        }
+      },
+      async doCreateItem() {
+        await window.vtoast.loading("新增文章");
+        const result = await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'jhInsertItem',
+              actionData: this.saveActionData
+            }
+          }
+        });
+        await window.vtoast.success("新增文章成功");
+
+        this.articleRowId = result.data.appData.resultData.rows[0];
+      },
+      async getArticleByRowId() {
+        const { rows } = (await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'selectItemList',
+              actionData: {},
+              where: { id: this.articleRowId },
+            }
+          }
+        })).data.appData.resultData;
+
+        this.editItem = rows[0];
+        this.articleId = this.editItem.articleId;
+      },
+      async doUpdateItem() {
+        await window.vtoast.loading("修改文章");
+        await window.jianghuAxios({
+          data: {
+            appData: {
+              pageId: 'articleEdit',
+              actionId: 'jhUpdateItem',
+              actionData: this.saveActionData,
+              where: {
+                articleId: this.articleId
+              }
+            }
+          }
+        })
+        await window.vtoast.success("修改文章成功");
+      },
+      async clearSave() {
+        this.saveActionData = {};
+        this.articleRowId = null;
+        this.isMDChange = false;
+      },
+      async refreshPage() {
+        const newUrl = `/${window.appInfo.appId}/page/articleEdit?articleId=${this.editItem.articleId}&title=${this.editItem.articleTitle}`;
+        history.pushState({}, null, newUrl);
+      },
+      // ---------- <<<<<<<<<<< 保存数据 uiAction  --------
+
+      // ---------- 保存并预览 uiAction >>>>>>>>>>>> --------
+      async previewArticle() {
+        window.location.href = `/${window.appInfo.appId}/page/article/${this.editItem.articleId}`;
+      },
+      // ---------- <<<<<<<<<<< 保存并预览 uiAction  --------
+
+      // ---------- 选择素材公共方法 >>>>>>>>>>>> --------
+      async checkIsArticleExists() {
+        try {
+          if (!this.articleId) {
+            await this.doUiAction('save')
+          }
+        } catch (error) {
+          window.vtoast.fail("请填写文章信息后,再点击上传文件!");
+          throw new Error("[checkIsArticleExists] false");
+        }
+      },
+      async openMaterialDialog() {
+        this.isMaterialDialogShown = true;
+      },
+      // ---------- <<<<<<<<<<< 选择素材公共方法  --------
+
+      // ---------- 文章选择封面 uiAction >>>>>>>>>>>> --------
+      async prepareSelectImageData() {
+        this.materialType = 'image';
+        this.writeBackType = 'attachment';
+        this.accessPath = "/materialRepo/image/";
+      },
+      // ---------- <<<<<<<<<<< 文章选择封面 uiAction  --------
+
+      // ---------- 文章选择音频 uiAction >>>>>>>>>>>> --------
+      async prepareSelectAudioData() {
+        this.materialType = 'audio';
+        this.writeBackType = 'attachment';
+        this.accessPath = "/materialRepo/audio/";
+      },
+      // ---------- <<<<<<<<<<< 文章选择音频 uiAction  --------
+
+      // ---------- 文章选择视频 uiAction >>>>>>>>>>>> --------
+      async prepareSelectVideoData() {
+        this.materialType = 'video';
+        this.writeBackType = 'attachment';
+        this.accessPath = "/materialRepo/video/";
+      },
+      // ---------- <<<<<<<<<<< 文章选择视频 uiAction  --------
+
+      // ---------- 删除文章封面 uiAction >>>>>>>>>>>> --------
+      async deleteImage() {
+        this.editItem.articleCoverImage = null;
+      },
+      // ---------- <<<<<<<<<<< 删除文章封面 uiAction  --------
+
+      // ---------- 删除文章音频 uiAction >>>>>>>>>>>> --------
+      async deleteAudio() {
+        this.editItem.articleAudioUrl = null;
+      },
+      // ---------- <<<<<<<<<<< 删除文章音频 uiAction  --------
+
+      // ---------- 删除文章视频 uiAction >>>>>>>>>>>> --------
+      async deleteVideo() {
+        this.editItem.articleVideoUrl = null;
+      },
+      // ---------- <<<<<<<<<<< 删除文章视频 uiAction  --------
+
+      // ---------- 初始化编辑器 uiAction >>>>>>>>>>>> --------
+      async initEditorMd() {
+        const that = this;
+        this.$nextTick(() => {
+          if (document.getElementById('editorMdContainer')) {
+            document.getElementById('editorMdContainer').innerHTML = `<textarea style=\"display:none;\">${this.editItem['articleContent'] || ""}</textarea>`;
+            that.editor = editormd('editorMdContainer', {
+              watch: false,
+              saveHTMLToTextarea: true,    // 保存 HTML 到 Textarea
+              path: '/<$ ctx.app.config.appId $>/public/plugins/editor.md/lib/',
+              toolbarIcons: that.toolbarIcons,
+              toolbarIconsClass: {
+                imageUpload: 'fa-image',
+                audioUpload: 'fa-file-audio-o',
+                videoUpload: 'fa-youtube-play',
+                attachmentUpload: 'fa-upload',
+              },
+              toolbarIconTexts: {
+                toggle: "<i class='fa fa-expand' name='toggle' unselectable='on' style='display: inline-block;'></i><span class='ml-1'>收缩</span>",  // 如果没有图标，则可以这样直接插入内容，可以是字符串或HTML标签
+                articleQuery: "<i class='fa fa-table' name='toggle' unselectable='on' style='display: inline-block;'></i><span class='ml-1'>列表</span>",  // 如果没有图标，则可以这样直接插入内容，可以是字符串或HTML标签
+              },
+              toolbarHandlers: {
+                imageUpload: function (cm, icon, cursor, selection) {
+                  that.doUiAction('MDSelectImage')
+                },
+                audioUpload: function (cm, icon, cursor, selection) {
+                  that.doUiAction('MDSelectAudio')
+                },
+                videoUpload: function (cm, icon, cursor, selection) {
+                  that.doUiAction('MDSelectVideo')
+                },
+                attachmentUpload: function (cm, icon, cursor, selection) {
+                  that.doUiAction('MDSelectAttachment')
+                },
+                toggle: function (cm, icon, cursor, selection) {
+                  cm.replaceSelection(`\n[jh-toggle title=\"title\" default-open=\"true\"]\n请输入内容\n[/jh-toggle]\n`);
+                },
+                articleQuery: function (cm, icon, cursor, selection) {
+                  cm.replaceSelection("\n[jh-article-query]\n" +
+                    "{\n" +
+                    " \"tableName\": \"数据表名称\",\n" +
+                    " \"where\": \"where 字段名 = 字段值\",\n" +
+                    " \"queryType\": \"order\",\n" +
+                    " \"orderBy\": \"order by 字段名 asc\",\n" +
+                    " \"limit\": 20\n" +
+                    "}" +
+                    "\n[/jh-article-query]\n");
+                }
+              },
+              lang: {
+                toolbar: {
+                  toggle: "展开收起",
+                  column: "横向排列",  // 自定义按钮的提示文本，即title属性
+                  articleQuery: "数据列表",
+                }
+              },
+              onchange: function () {
+                that.doUiAction('MDChange')
+              },
+            });
+          } else {
+            requestAnimationFrame(() => {
+              that.doUiAction('initEditorMd')
+            })
+          }
+        })
+      },
+      // ---------- <<<<<<<<<<< 初始化编辑器 uiAction  --------
+
+      // ---------- markdown 选择图片 uiAction >>>>>>>>>>>> --------
+      async prepareMDSelectImageData() {
+        this.materialType = 'image';
+        this.writeBackType = 'editor';
+        this.accessPath = "/materialRepo/image/";
+      },
+      // ---------- <<<<<<<<<<< markdown 选择图片 uiAction  --------
+
+      // ---------- markdown 选择音频 uiAction >>>>>>>>>>>> --------
+      async prepareMDSelectAudioData() {
+        this.materialType = 'audio';
+        this.writeBackType = 'editor';
+        this.accessPath = "/materialRepo/audio/";
+      },
+      // ---------- <<<<<<<<<<< markdown 选择音频 uiAction  --------
+
+      // ---------- markdown 选择视频 uiAction >>>>>>>>>>>> --------
+      async prepareMDSelectVideoData() {
+        this.materialType = 'video';
+        this.writeBackType = 'editor';
+        this.accessPath = "/materialRepo/video/";
+      },
+      // ---------- <<<<<<<<<<< markdown 选择视频 uiAction  --------
+
+      // ---------- markdown 选择附件 uiAction >>>>>>>>>>>> --------
+      async prepareMDSelectAttachmentData() {
+        this.materialType = 'attachment';
+        this.writeBackType = 'editor';
+        this.accessPath = "/materialRepo/attachment/";
+      },
+      // ---------- <<<<<<<<<<< markdown 选择附件 uiAction  --------
+
+      // ---------- markdown change uiAction >>>>>>>>>>>> --------
+      async setMDChanged() {
+        this.isMDChange = true;
+      },
+      async setArticleContent() {
+        this.editItem.articleContent = this.editor.getMarkdown();
+        this.editItem.articleContentForSeo = this.editor.getPreviewedHTML2();
+      },
+      // ---------- <<<<<<<<<<< markdown change uiAction --------
+
+      // ---------- 使用素材 uiAction >>>>>>>>>>>> --------
+      async doUseMaterial(path) {
+        if (this.materialType === 'image') {
+          const resultData = (await window.jianghuAxios({
+            data: {
+              appData: {
+                pageId: 'articleEdit',
+                actionId: 'useMaterial',
+                actionData: {
+                  articleId: this.articleId,
+                  path,
+                },
+              }
+            }
+          })).data.appData.resultData;
+          this.materialFilename = resultData.filename;
+          this.materialDownloadPath = resultData.downloadPath;
+        } else {
+          this.materialFilename = path.substring(path.lastIndexOf('/') + 1);
+          this.materialDownloadPath = `${this.rootDirectory}${path}`;
+        }
+      },
+      async renderMaterial() {
+        if (this.writeBackType === 'editor') {
+          switch (this.materialType) {
+            case 'image':
+              if (this.materialDownloadPath) {
+                this.editor.insertValue(`\n![${this.materialFilename}](/upload${this.materialDownloadPath})`);
+              }
+              break;
+            case 'audio':
+              if (this.materialDownloadPath) {
+                this.editor.insertValue(`\n![=audio](/upload${this.materialDownloadPath})`);
+              }
+              break;
+            case 'video':
+              if (this.materialDownloadPath) {
+                this.editor.insertValue(`\n![=video](/upload${this.materialDownloadPath})`);
+              }
+              break;
+            case 'attachment':
+              if (this.materialDownloadPath) {
+                this.editor.insertValue(`\n[${this.materialFilename}](/upload${this.materialDownloadPath})`);
+              }
+              break;
+          }
+        } else {
+          switch (this.materialType) {
+            case 'image':
+              if (this.materialDownloadPath) {
+                this.editItem.articleCoverImage = this.materialDownloadPath
+              }
+              break;
+            case 'audio':
+              if (this.materialDownloadPath) {
+                this.editItem.articleAudioUrl = this.materialDownloadPath
+              }
+              break;
+            case 'video':
+              if (this.materialDownloadPath) {
+                this.editItem.articleVideoUrl = this.materialDownloadPath
+              }
+              break;
+          }
+        }
+      },
+      async clearUseMaterial() {
+        this.materialFilename = null;
+        this.materialDownloadPath = null;
+        this.isMaterialDialogShown = false;
+      },
+      // ---------- <<<<<<<<<<< 使用素材 uiAction --------
+    }
+  })
+</script>
+
+<style scoped>
+  /* ---------- btn >>>>>>>>>> -------- */
+  .mdi-upload-outline,
+  .mdi-trash-can-outline {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* ---------- <<<<<<<<<<< btn -------- */
+
+  /* ---------- 弹窗 >>>>>>>>>> -------- */
+  .v-dialog--fullscreen .v-sheet {
+    height: auto;
+    position: relative;
+    background: #fff;
+    display: block;
+  }
+
+  /* ---------- <<<<<<<<<<< 弹窗 -------- */
+
+  /* ---------- 编辑器 >>>>>>>>>> -------- */
+  .editormd,
+  .CodeMirror-gutters,
+  .editormd-toolbar,
+  .editormd .CodeMirror,
+  .editormd-menu>li.divider,
+  .editormd-menu>li>a:hover,
+  .editormd-menu>li>a.active {
+    border-color: #eff2f5 !important;
+  }
+
+  .CodeMirror-gutter {
+    background-color: #fff;
+  }
+
+  .CodeMirror-scroll {
+    overflow-x: hidden !important;
+  }
+
+  .editormd-dialog-close {
+    color: #3F4254 !important;
+  }
+
+  .editormd-preview-container ol.linenums li,
+  .editormd-html-preview ol.linenums li {
+    list-style-type: none;
+  }
+
+  .editormd-preview-container ol.linenums,
+  .editormd-html-preview ol.linenums {
+    color: #999;
+    padding-left: 0;
+  }
+
+  /* ---------- <<<<<<<<<<< 编辑器 -------- */
+</style>
+{% endblock %}
